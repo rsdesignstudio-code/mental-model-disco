@@ -54,6 +54,15 @@ export const ABOUT: AboutSection[] = [
     ],
   },
   {
+    title: "What this tool records about you",
+    body: [
+      "Your account, your case studies and anything you submit to the Class Gallery are stored so they follow you between your phone, tablet and laptop. Your working case studies stay private to you; Class Gallery submissions are visible to the whole class, and the tool says so before you submit.",
+      "For teaching purposes, faculty can see usage figures across the class: how many case studies you have started and submitted, how often you sign in, when you were last active, and an approximate location — country and city — for each sign-in. The location is worked out by the hosting platform from your connection; your IP address itself is never stored.",
+      "There is no background tracking. Nothing is recorded while you are idle, and the tool does not watch what you type, record your screen, or time you. Session length is simply the gap between signing in and your last saved edit.",
+      "If you would like your account and everything in it deleted, ask your faculty member.",
+    ],
+  },
+  {
     title: "Attribution",
     body: ATTRIBUTION_LINES,
   },

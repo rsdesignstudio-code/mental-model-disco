@@ -69,6 +69,17 @@
   --on-fill: #ffffff;
 
   --focus: #0f6a67;
+
+  /* Chart marks. Separate from the UI accents on purpose: the UI tokens are
+     tuned for 4.5:1 TEXT contrast and fail the chroma floor as data marks.
+     These are snapped to passing steps on the same two brand hues and clear
+     all six checks (lightness band, chroma, CVD separation, normal-vision
+     floor, contrast) — verified with the palette validator. */
+  --chart-1: #0f9c95;   /* teal   — slot 1 */
+  --chart-2: #6b4bab;   /* purple — slot 2 */
+  --chart-grid: rgba(60, 56, 48, 0.12);
+  --chart-axis: #7a756a;
+  --chart-surface: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -105,6 +116,14 @@
     --on-fill: #ffffff;
 
     --focus: #59cfc9;
+
+    /* Dark steps are chosen, not flipped — re-validated against the dark
+       chart surface rather than lightened automatically. */
+    --chart-1: #2aa39c;
+    --chart-2: #8a6ecb;
+    --chart-grid: rgba(235, 232, 224, 0.14);
+    --chart-axis: #948f85;
+    --chart-surface: #1f1e1b;
   }
 }
 
@@ -139,6 +158,11 @@
   --purple-fill: #4a3376;
   --purple-soft: #2c2440;
   --focus: #59cfc9;
+  --chart-1: #2aa39c;
+  --chart-2: #8a6ecb;
+  --chart-grid: rgba(235, 232, 224, 0.14);
+  --chart-axis: #948f85;
+  --chart-surface: #1f1e1b;
 }
 
 /* ---- High contrast toggle (layers on top of light or dark) ---- */

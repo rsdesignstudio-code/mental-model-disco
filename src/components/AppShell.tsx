@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   Brain,
   Compass,
   Download,
@@ -99,13 +100,13 @@ export default function AppShell() {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPing = useRef(0);
 
   const active = cases.find((c) => c.id === activeId) ?? null;
 
   /* ---------------- auth + session identity ---------------- */
 
-  const ensureSessionRow = useCallback(async (uid: string, force: boolean) => {
-    const supabase = getSupabase();
+  const ensureSessionRow = useCallback(async (force: boolean) => {
     if (!force) {
       const existing = sessionStorage.getItem(SESSION_ROW_KEY);
       if (existing) {
@@ -113,23 +114,30 @@ export default function AppShell() {
         return existing;
       }
     }
-    const { data, error } = await supabase
-      .from("sessions")
-      .insert({
-        user_id: uid,
-        client_info:
-          typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 400) : null,
-      })
-      .select("id")
-      .single();
 
-    if (error || !data) {
-      console.warn("Could not create a session row:", error?.message);
+    // Created server-side (/api/session/start) rather than straight from the
+    // browser, so the row can carry the coarse country/city the edge already
+    // knows. No IP address is read here or stored there.
+    try {
+      const { data: sess } = await getSupabase().auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) return null;
+
+      const res = await fetch("/api/session/start", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.id) throw new Error(json.error ?? "no id returned");
+
+      sessionStorage.setItem(SESSION_ROW_KEY, json.id);
+      setSessionRowId(json.id);
+      return json.id as string;
+    } catch (e) {
+      // Session tracking is telemetry, not function. Never block sign-in on it.
+      console.warn("Could not create a session row:", e);
       return null;
     }
-    sessionStorage.setItem(SESSION_ROW_KEY, data.id);
-    setSessionRowId(data.id);
-    return data.id as string;
   }, []);
 
   const loadProfile = useCallback(async (u: User) => {
@@ -201,7 +209,7 @@ export default function AppShell() {
 
       // A brand-new sign-in always gets its own sessions row. A page reload or a
       // silent token refresh reuses the row already created for this visit.
-      await ensureSessionRow(u.id, event === "SIGNED_IN");
+      await ensureSessionRow(event === "SIGNED_IN");
 
       const stored = loadA11y(u.id);
       setA11y(stored);
@@ -296,6 +304,18 @@ export default function AppShell() {
           ? { kind: "error", msg: "Save failed — your edits are still on screen." }
           : { kind: "ok", msg: `Saved ${new Date().toLocaleTimeString()}` }
       );
+
+      // Piggyback on the save the user already triggered to record that this
+      // session was still active. Throttled to once every two minutes, and
+      // there is no background timer — nothing is recorded while idle.
+      const now = Date.now();
+      if (sessionRowId && !error && now - lastPing.current > 120_000) {
+        lastPing.current = now;
+        void getSupabase()
+          .from("sessions")
+          .update({ last_active_at: new Date().toISOString() })
+          .eq("id", sessionRowId);
+      }
     },
     [sessionRowId]
   );
@@ -603,6 +623,16 @@ export default function AppShell() {
             <span className="text-left">{label}</span>
           </button>
         ))}
+        {profile?.role === "faculty" && (
+          <a
+            href="/admin"
+            className="tap w-full flex items-center gap-2.5 px-3 rounded-[10px]"
+            style={{ color: "var(--text-2)", fontSize: "var(--t-subhead)", background: "transparent" }}
+          >
+            <BarChart3 size={17} aria-hidden />
+            <span className="text-left">Usage analytics</span>
+          </a>
+        )}
         <button
           type="button"
           className="tap w-full flex items-center gap-2.5 px-3 rounded-[10px]"
