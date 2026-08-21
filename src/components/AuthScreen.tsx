@@ -88,6 +88,33 @@ export default function AuthScreen() {
     }
   }
 
+  async function sendReset() {
+    const mail = email.trim().toLowerCase();
+    setError("");
+    setNotice("");
+    if (!EMAIL_RE.test(mail)) {
+      setError("Enter your email address first, then tap “Forgot password?”.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await getSupabase().auth.resetPasswordForEmail(mail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      // Supabase deliberately does not reveal whether an account exists, so the
+      // wording here must not either — saying "no such account" would let
+      // anyone test which of their classmates had registered.
+      setNotice(
+        `If ${mail} has an account, a reset link is on its way. Open it in this browser — the link only works where it was requested.`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send the reset email.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function resendConfirmation() {
     const mail = email.trim().toLowerCase();
     if (!EMAIL_RE.test(mail)) {
@@ -205,19 +232,43 @@ export default function AuthScreen() {
               />
             </Labeled>
 
-            <Labeled
-              label="Password"
-              hint={mode === "signup" ? "At least 8 characters." : undefined}
-            >
+            <div>
+              <div className="flex items-baseline gap-2 mb-1.5">
+                <span className="eyebrow flex-1">Password</span>
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={sendReset}
+                    disabled={busy}
+                    style={{
+                      fontSize: "var(--t-caption)",
+                      color: "var(--teal)",
+                      background: "transparent",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <TextField
                 type="password"
+                aria-label="Password"
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={8}
                 required
               />
-            </Labeled>
+              {mode === "signup" && (
+                <span
+                  className="block mt-1"
+                  style={{ fontSize: "var(--t-caption)", color: "var(--text-3)" }}
+                >
+                  At least 8 characters.
+                </span>
+              )}
+            </div>
 
             {error && (
               <p
